@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register | CybVars</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f7fa; color: #333; }
+    .container { max-width: 500px; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    h2 { text-align: center; margin-bottom: 1.5rem; }
+    label { display: block; margin-top: 1rem; font-weight: 600; }
+    input, button { width: 100%; padding: 0.75rem; margin-top: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    input[readonly] { background: #e9ecef; }
+    button { background: #4c51bf; color: #fff; border: none; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #5a67d8; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    #map { height: 200px; margin-top: 1rem; border: 1px solid #ddd; border-radius: 4px; }
+    .hidden { display: none; }
+    .otp-section { margin-top: 1.5rem; }
+    .error { color: #e53e3e; font-size: 0.875rem; margin-top: 0.25rem; }
+    .success { color: #38a169; font-size: 0.875rem; margin-top: 0.25rem; }
+    .resend-link { text-align: center; margin-top: 1rem; color: #4c51bf; cursor: pointer; text-decoration: underline; }
+    .resend-link.disabled { color: #ccc; cursor: not-allowed; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <a href="index.html"
+     style="position:absolute;top:20px;left:20px;display:flex;align-items:center;gap:7px;color:#4c51bf;font-size:1rem;font-weight:500;text-decoration:none;">
+    <span style="font-size:1.2em;">&#8592;</span> Back
+  </a>
+
+  <div class="container">
+    <h2>Create Your CybVars Account</h2>
+
+    <!-- Registration form -->
+    <form id="regForm">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" required>
+      <div id="nameError" class="error hidden"></div>
+
+      <label for="dob">Date of Birth</label>
+      <input type="date" id="dob" required>
+      <div id="dobError" class="error hidden"></div>
+
+      <label for="age">Age</label>
+      <input type="text" id="age" readonly>
+
+      <label>Location (click on map or use current location)</label>
+      <div id="map"></div>
+      <button type="button" id="btnLocate">Use My Location</button>
+      <div id="locationError" class="error hidden"></div>
+
+      <label for="location">Address</label>
+      <input type="text" id="location" placeholder="Selected address" readonly>
+
+      <div style="display:flex; gap:1rem; margin-top:0.5rem;">
+        <div style="flex:1;">
+          <label for="latitude">Latitude</label>
+          <input type="text" id="latitude" readonly>
+        </div>
+        <div style="flex:1;">
+          <label for="longitude">Longitude</label>
+          <input type="text" id="longitude" readonly>
+        </div>
+      </div>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" required>
+      <div id="emailError" class="error hidden"></div>
+
+      <label for="phone">Phone Number</label>
+      <input type="tel" id="phone" pattern="[0-9]{10}" placeholder="10-digit number" required>
+      <div id="phoneError" class="error hidden"></div>
+
+      <label for="password">Password (min 8 characters)</label>
+      <input type="password" id="password" required minlength="8">
+      <div id="passwordError" class="error hidden"></div>
+
+      <button type="submit" id="btnRegister">Register</button>
+    </form>
+
+    <!-- OTP section (initially hidden) -->
+    <div id="otpSection" class="container hidden" style="text-align:center;">
+      <h2>Enter OTP</h2>
+      <p>We've sent a 6-digit code to <span id="registeredEmail" style="font-weight:600;"></span></p>
+      <form id="otpForm">
+        <label for="otp">OTP Code</label>
+        <input type="text" id="otp" maxlength="6" required pattern="\d{6}" inputmode="numeric">
+        <div id="otpError" class="error hidden"></div>
+        <div id="otpSuccess" class="success hidden"></div>
+        <button type="submit" id="btnVerify">Verify OTP</button>
+      </form>
+      <div id="resendContainer">
+        <span id="resendText">Didn't receive the code?</span>
+        <span id="btnResend" class="resend-link">Resend OTP</span>
+        <span id="resendTimer" class="resend-link disabled hidden">
+          Resend available in <span id="countdown">30</span>s
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <audio id="bg-music" autoplay loop>
+  <source src="background.mp3" type="audio/mpeg">
+  Your browser does not support the audio tag.
+</audio>
+<script src="music.js"></script> <!-- Your new music logic -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // ── NEW: Auto-show OTP if redirected from login.html ─────────
+    let registeredEmail = null;
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('action') === 'verify' && params.get('email')) {
+        registeredEmail = params.get('email');
+        document.getElementById('registeredEmail').textContent = registeredEmail;
+        document.getElementById('regForm').classList.add('hidden');
+        document.getElementById('otpSection').classList.remove('hidden');
+        document.getElementById('otp').focus();
+        if (typeof startResendTimer === 'function') startResendTimer();
+      }
+    });
+    // ─────────────────────────────────────────────────────────────
+
+    // Form-field helpers
+    function showError(fieldId, message) {
+      const el = document.getElementById(`${fieldId}Error`);
+      el.textContent = message;
+      el.classList.remove('hidden');
+    }
+    function clearError(fieldId) {
+      const el = document.getElementById(`${fieldId}Error`);
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
+    function showSuccess(fieldId, message) {
+      const el = document.getElementById(`${fieldId}Success`);
+      el.textContent = message;
+      el.classList.remove('hidden');
+    }
+    function validateEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    // Age calculation
+    document.getElementById('dob').addEventListener('change', function() {
+      clearError('dob');
+      const dob = new Date(this.value);
+      if (isNaN(dob)) return showError('dob','Invalid date');
+      if (dob > new Date()) return showError('dob','Date in future');
+      const age = Math.abs(new Date(Date.now() - dob.getTime()).getUTCFullYear() - 1970);
+      document.getElementById('age').value = age;
+    });
+
+    // Map & location
+    const map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    let marker;
+    function fillLocation(lat,lng) {
+      document.getElementById('latitude').value = lat.toFixed(6);
+      document.getElementById('longitude').value = lng.toFixed(6);
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+        .then(r=>r.json())
+        .then(d=>document.getElementById('location').value=d.display_name||'')
+        .catch(_=>document.getElementById('location').value=`${lat.toFixed(6)},${lng.toFixed(6)}`);
+    }
+    map.on('click', e => {
+      if (marker) map.removeLayer(marker);
+      marker = L.marker(e.latlng).addTo(map);
+      fillLocation(e.latlng.lat, e.latlng.lng);
+      clearError('location');
+    });
+    document.getElementById('btnLocate').addEventListener('click', () => {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const {latitude:lat,longitude:lng}=pos.coords;
+        map.setView([lat,lng],14);
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat,lng]).addTo(map);
+        fillLocation(lat,lng);
+        clearError('location');
+      },()=>showError('location','Could not get location'));
+    });
+
+    // Registration submission
+    document.getElementById('regForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      // validate fields...
+      // (same as before – see your original code) :contentReference[oaicite:0]{index=0}
+      // if valid:
+      const btn = document.getElementById('btnRegister');
+      btn.disabled = true; btn.textContent = 'Registering…';
+      try {
+        const payload = {
+          full_name: document.getElementById('name').value.trim(),
+          dob:        document.getElementById('dob').value,
+          age:        document.getElementById('age').value,
+          email:      document.getElementById('email').value.trim(),
+          phone:      document.getElementById('phone').value.trim(),
+          password:   document.getElementById('password').value,
+          address:    document.getElementById('location').value,
+          latitude:   document.getElementById('latitude').value,
+          longitude:  document.getElementById('longitude').value
+        };
+        const res = await fetch('http://127.0.0.1:5000/api/register', {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+        });
+        const { success, message } = await res.json();
+        if (res.ok && success) {
+          // show OTP section
+          registeredEmail = payload.email;
+          document.getElementById('registeredEmail').textContent = registeredEmail;
+          document.getElementById('regForm').classList.add('hidden');
+          document.getElementById('otpSection').classList.remove('hidden');
+          showSuccess('otp','OTP sent to your email.');
+          startResendTimer();
+        } else {
+          showError('email', message || 'Registration failed');
+        }
+      } catch {
+        showError('email','Network error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Register';
+      }
+    });
+
+    // Verify OTP
+    document.getElementById('otpForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const code = document.getElementById('otp').value.trim();
+      if (!/^\d{6}$/.test(code)) return showError('otp','Enter 6-digit OTP');
+      const btn = document.getElementById('btnVerify');
+      btn.disabled = true; btn.textContent = 'Verifying…';
+      try {
+        const res = await fetch('http://127.0.0.1:5000/api/verify-otp', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ email: registeredEmail, otp: code })
+        });
+        const { success, message } = await res.json();
+        if (res.ok && success) {
+          window.location.href = 'login.html?registered=true';
+        } else {
+          showError('otp', message || 'OTP failed');
+        }
+      } catch {
+        showError('otp','Network error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Verify OTP';
+      }
+    });
+
+    // Resend OTP
+    function startResendTimer() {
+      const btnR   = document.getElementById('btnResend'),
+            timerC = document.getElementById('resendTimer'),
+            cd     = document.getElementById('countdown');
+      btnR.classList.add('hidden'); timerC.classList.remove('hidden');
+      let t=30; cd.textContent=t;
+      const iv = setInterval(()=>{
+        if (--t<=0){ clearInterval(iv); timerC.classList.add('hidden'); btnR.classList.remove('hidden'); }
+        cd.textContent=t;
+      },1000);
+    }
+    document.getElementById('btnResend').addEventListener('click', async function(){
+      this.classList.add('hidden');
+      document.getElementById('resendTimer').classList.remove('hidden');
+      try {
+        const res = await fetch('http://127.0.0.1:5000/api/resend-otp', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ email: registeredEmail })
+        });
+        const { success, message } = await res.json();
+        if (res.ok && success) {
+          showSuccess('otp','New OTP sent');
+          startResendTimer();
+        } else {
+          showError('otp', message || 'Resend failed');
+          document.getElementById('btnResend').classList.remove('hidden');
+        }
+      } catch {
+        showError('otp','Network error');        
+        document.getElementById('btnResend').classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

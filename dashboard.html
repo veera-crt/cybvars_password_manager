@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard | CybVars</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+  />
+  <style>
+    :root {
+      --primary: #4c51bf;
+      --primary-light: #5a67d8;
+      --danger: #e53e3e;
+      --success: #38a169;
+      --text: #2d3748;
+      --text-light: #718096;
+      --bg: #f7fafc;
+      --card-bg: #ffffff;
+    }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    header {
+      background: var(--card-bg);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-weight: bold;
+      color: var(--primary);
+      font-size: 1.5rem;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .logout-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .logout-btn:hover {
+      text-decoration: underline;
+    }
+    .main-content {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    .sidebar {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      height: fit-content;
+    }
+    .add-password-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .form-group label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .form-group input,
+    .form-group textarea {
+      padding: 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    .form-group textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--primary-light);
+    }
+    .password-list {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .password-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .password-count {
+      font-weight: 600;
+      color: var(--text-light);
+    }
+    .password-item {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .password-website {
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .password-username {
+      color: var(--text-light);
+      margin-bottom: 0.5rem;
+    }
+    .password-value {
+      font-family: monospace;
+      background: #f7fafc;
+      padding: 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      position: relative;
+      padding-right: 30px;
+    }
+    .password-value .toggle-visibility {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+    .password-value .toggle-visibility:hover {
+      color: var(--primary);
+    }
+    .password-notes {
+      margin-top: 1rem;
+      color: var(--text-light);
+    }
+    .password-actions {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--text-light);
+    }
+    .action-btn:hover {
+      color: var(--primary);
+    }
+    .action-btn.delete:hover {
+      color: var(--danger);
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      width: 400px; max-width: 90%;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .otp-input {
+      font-size: 1.5rem;
+      letter-spacing: 0.5rem;
+      text-align: center;
+      padding: 0.5rem;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    .timer {
+      text-align: center;
+      margin-bottom: 1rem;
+      color: var(--text-light);
+    }
+    .error-message {
+      color: var(--danger);
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .success-message {
+      color: var(--success);
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .inactive-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      color: white;
+      font-size: 1.5rem;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .inactive-overlay.hidden {
+      display: none;
+    }
+    .inactive-overlay button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .strength-bar {
+      display: flex;
+      gap: 0.2rem;
+      margin-bottom: 0.2rem;
+    }
+    .strength-bar div {
+      flex: 1;
+      height: 4px;
+      background: #e0e0e0;
+      border-radius: 2px;
+    }
+    .strength-text {
+      font-size: 0.8rem;
+      color: var(--text-light);
+    }
+    .password-input-container {
+      position: relative;
+      width: 100%;
+    }
+    .password-input-container input {
+      width: 100%;
+      padding-right: 35px;
+    }
+    .password-input-container .toggle-password {
+      position: absolute;
+      right: 10px; top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+    .password-input-container .toggle-password:hover {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">CybVars</div>
+    <div class="user-info">
+      <span id="userEmail"></span>
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="main-content">
+      <!-- Sidebar: Add New Password -->
+      <div class="sidebar">
+        <h3>Add New Password</h3>
+        <form id="addPasswordForm" class="add-password-form">
+          <div class="form-group">
+            <label for="website">Website/Service</label>
+            <input type="text" id="website" required />
+          </div>
+          <div class="form-group">
+            <label for="username">Username/Email</label>
+            <input type="text" id="username" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-input-container">
+              <input type="password" id="password" required />
+              <button type="button" id="toggleNewPassword" class="toggle-password">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+            <button type="button" id="generatePassword" class="btn">
+              Generate
+            </button>
+            <div class="password-strength">
+              <div class="strength-bar">
+                <div></div><div></div><div></div><div></div>
+              </div>
+              <div class="strength-text"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="notes">Notes (Optional)</label>
+            <textarea id="notes"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Save Password</button>
+        </form>
+      </div>
+
+      <!-- Password List -->
+      <div class="password-list">
+        <div class="password-header">
+          <h3>Your Passwords</h3>
+          <span id="passwordCount" class="password-count">0 passwords</span>
+        </div>
+        <div id="passwordsContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTP Modal -->
+  <div class="modal" id="otpModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Verify OTP</div>
+        <button id="closeOtpModal" class="close-btn">&times;</button>
+      </div>
+      <div id="otpTimer" class="timer">OTP valid for 7:00</div>
+      <div id="otpError" class="error-message hidden"></div>
+      <div id="otpSuccess" class="success-message hidden"></div>
+      <input type="text" id="otpInput" class="otp-input" maxlength="6" placeholder="000000" />
+      <button id="verifyOtpBtn" class="btn btn-primary">Verify OTP</button>
+      <div id="editFormContainer" class="edit-form hidden"></div>
+    </div>
+  </div>
+
+  <!-- Inactivity Overlay -->
+  <div id="inactiveOverlay" class="inactive-overlay hidden">
+    <div>Your session is about to expire due to inactivity</div>
+    <button id="continueSessionBtn">Continue Session</button>
+  </div>
+
+  <audio id="bg-music" autoplay loop>
+    <source src="background.mp3" type="audio/mpeg" />
+    Your browser does not support the audio tag.
+  </audio>
+  <script src="music.js"></script>
+
+  <script>
+    // ─── Session & Auth ─────────────────────────────────────────────────────────
+    let inactivityTimer;
+    const WARNING_TIMEOUT = 24*60*1000;
+
+    function resetInactivityTimer() {
+      clearTimeout(inactivityTimer);
+      document.getElementById("inactiveOverlay").classList.add("hidden");
+      inactivityTimer = setTimeout(() => {
+        document.getElementById("inactiveOverlay").classList.remove("hidden");
+        setTimeout(logout, 60*1000);
+      }, WARNING_TIMEOUT);
+    }
+
+    function setupActivityListeners() {
+      ["mousemove","keydown","click"].forEach(evt =>
+        document.addEventListener(evt, resetInactivityTimer)
+      );
+      resetInactivityTimer();
+    }
+
+    async function checkAuth() {
+      const r = await fetch("http://127.0.0.1:5000/api/check-auth", {credentials:"include"});
+      return r.ok && (await r.json()).success;
+    }
+
+    function logout() {
+      fetch("http://127.0.0.1:5000/api/logout", {
+        method:"POST", credentials:"include"
+      }).then(()=> window.location = "login.html");
+    }
+
+    // ─── Password Strength & Generator ──────────────────────────────────────────
+    function checkPasswordStrength(pwd) {
+      let strength=0;
+      const bars = document.querySelectorAll(".strength-bar div");
+      const text = document.querySelector(".strength-text");
+      bars.forEach(b=>b.style.background="#e0e0e0");
+      text.textContent="";
+      if(pwd.length>7) strength++;
+      if(/\d/.test(pwd)) strength++;
+      if(/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) strength++;
+      if(/[a-z]/.test(pwd)&&/[A-Z]/.test(pwd)) strength++;
+      const labels=["Very Weak","Weak","Moderate","Strong","Very Strong"];
+      text.textContent=labels[strength];
+      bars.forEach((b,i)=> i<strength && (b.style.background=""));
+    }
+
+    function generateRandomPassword() {
+      const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+      return Array(12).fill(0).map(()=> chars[Math.floor(Math.random()*chars.length)]).join("");
+    }
+
+    // ─── Load & Render Passwords ────────────────────────────────────────────────
+    async function loadPasswords() {
+      const res = await fetch("http://127.0.0.1:5000/api/passwords", {credentials:"include"});
+      const data = await res.json();
+      if(!data.success) return logout();
+
+      const container = document.getElementById("passwordsContainer");
+      container.innerHTML = "";
+      document.getElementById("passwordCount").textContent =
+        `${data.passwords.length} password${data.passwords.length!==1?"s":""}`;
+
+      data.passwords.forEach(p=>{
+        const div = document.createElement("div");
+        div.className = "password-item";
+        div.innerHTML = `
+          <div class="password-website">${p.website}</div>
+          <div class="password-username">${p.username}</div>
+          <div class="password-value" id="password-${p.id}" data-visible="false">
+            ••••••••
+            <button class="action-btn toggle-visibility" data-id="${p.id}">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="password-notes">${p.notes||""}</div>
+          <div class="password-actions">
+            <button class="action-btn copy"   data-id="${p.id}"><i class="fas fa-copy"></i></button>
+            <button class="action-btn modify" data-id="${p.id}"><i class="fas fa-edit"></i></button>
+            <button class="action-btn delete" data-id="${p.id}"><i class="fas fa-trash"></i></button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+      attachPasswordVisibilityToggles();
+      attachPasswordActions();
+    }
+
+    // ─── Toggle Visibility (decrypt on eye-click) ──────────────────────────────
+    function attachPasswordVisibilityToggles() {
+      document.querySelectorAll(".toggle-visibility").forEach(btn=>{
+        btn.onclick = async e=>{
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const el = document.getElementById(`password-${id}`);
+          const visible = el.dataset.visible === "true";
+
+          if(visible) {
+            el.innerHTML = `
+              ••••••••
+              <button class="action-btn toggle-visibility" data-id="${id}">
+                <i class="fas fa-eye"></i>
+              </button>`;
+            el.dataset.visible="false";
+            attachPasswordVisibilityToggles();
+          } else {
+            const r = await fetch(`http://127.0.0.1:5000/api/passwords/${id}`, {credentials:"include"});
+            const d = await r.json();
+            if(d.success) {
+              el.innerHTML = `
+                ${d.password}
+                <button class="action-btn toggle-visibility" data-id="${id}">
+                  <i class="fas fa-eye-slash"></i>
+                </button>`;
+              el.dataset.visible="true";
+              attachPasswordVisibilityToggles();
+            }
+          }
+        };
+      });
+    }
+
+    // ─── Copy / Modify / Delete Actions ─────────────────────────────────────────
+    let currentAction=null, currentPwdId=null;
+
+    function attachPasswordActions() {
+      document.querySelectorAll(".copy").forEach(btn=>{
+        btn.onclick=async()=>{
+          const id=btn.dataset.id;
+          const el=document.getElementById(`password-${id}`);
+          if(el.dataset.visible==="true") {
+            navigator.clipboard.writeText(el.textContent.trim());
+          } else {
+            const r=await fetch(`http://127.0.0.1:5000/api/passwords/${id}`,{credentials:"include"});
+            const {password} = await r.json();
+            navigator.clipboard.writeText(password);
+          }
+        };
+      });
+
+      document.querySelectorAll(".delete").forEach(btn=>{
+        btn.onclick=()=>{
+          currentAction="delete";
+          currentPwdId=btn.dataset.id;
+          showOtpModal();
+        };
+      });
+
+      document.querySelectorAll(".modify").forEach(btn=>{
+        btn.onclick=()=>{
+          currentAction="modify";
+          currentPwdId=btn.dataset.id;
+          showOtpModal();
+        };
+      });
+    }
+
+    // ─── OTP Modal Logic ───────────────────────────────────────────────────────
+    let otpInterval;
+    function showOtpModal() {
+      const m=document.getElementById("otpModal");
+      document.getElementById("otpError").classList.add("hidden");
+      document.getElementById("otpSuccess").classList.add("hidden");
+      document.getElementById("otpInput").value="";
+      document.getElementById("editFormContainer").classList.add("hidden");
+
+      fetch("http://127.0.0.1:5000/api/generate-otp", {
+        method:"POST", credentials:"include"
+      }).then(r=>r.json()).then(d=>{
+        if(d.success) {
+          m.classList.add("active");
+          startOtpTimer();
+        }
+      });
+    }
+
+    function startOtpTimer() {
+      let t=7*60;
+      clearInterval(otpInterval);
+      otpInterval=setInterval(()=>{
+        const min=Math.floor(t/60), sec=t%60;
+        document.getElementById("otpTimer").textContent =
+          `OTP valid for ${min}:${sec.toString().padStart(2,"0")}`;
+        if(t--<=0) {
+          clearInterval(otpInterval);
+          document.getElementById("otpError").classList.remove("hidden");
+          document.getElementById("otpError").textContent="OTP expired";
+        }
+      },1000);
+    }
+
+    document.getElementById("verifyOtpBtn").onclick=()=>{
+      const otp=document.getElementById("otpInput").value;
+      if(!/^\d{6}$/.test(otp)) {
+        document.getElementById("otpError").classList.remove("hidden");
+        return;
+      }
+      fetch("http://127.0.0.1:5000/api/verify-action-otp",{
+        method:"POST",
+        credentials:"include",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({otp})
+      })
+      .then(r=>r.json()).then(d=>{
+        if(!d.success) {
+          document.getElementById("otpError").classList.remove("hidden");
+        } else if(currentAction==="delete") {
+          deletePassword(d.action_token);
+        } else {
+          showEditForm(d.action_token);
+        }
+      });
+    };
+
+    function deletePassword(token) {
+      fetch(`http://127.0.0.1:5000/api/passwords/${currentPwdId}`, {
+        method:"DELETE",
+        credentials:"include",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action_token:token})
+      })
+      .then(r=>r.json())
+      .then(d=>{
+        if(d.success) {
+          document.getElementById("otpModal").classList.remove("active");
+          loadPasswords();
+        }
+      });
+    }
+
+    function showEditForm(token) {
+      fetch(`http://127.0.0.1:5000/api/passwords/${currentPwdId}`, {credentials:"include"})
+      .then(r=>r.json())
+      .then(d=>{
+        const c=document.getElementById("editFormContainer");
+        c.innerHTML=`
+          <div class="form-group">
+            <label>Website</label>
+            <input id="editWebsite" value="${d.website}"/>
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input id="editUsername" value="${d.username}"/>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input id="editPassword" value="${d.password}"/>
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea id="editNotes">${d.notes||""}</textarea>
+          </div>
+          <button id="saveEditBtn" class="btn btn-primary">Save Changes</button>
+        `;
+        c.classList.remove("hidden");
+        document.getElementById("saveEditBtn").onclick=()=>{
+          const payload={
+            website:document.getElementById("editWebsite").value,
+            username:document.getElementById("editUsername").value,
+            password:document.getElementById("editPassword").value,
+            notes:document.getElementById("editNotes").value,
+            otp:document.getElementById("otpInput").value
+          };
+          fetch(`http://127.0.0.1:5000/api/passwords/${currentPwdId}`,{
+            method:"PUT",
+            credentials:"include",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify(payload)
+          })
+          .then(r=>r.json())
+          .then(res=>{
+            if(res.success) {
+              c.innerHTML=`
+                <div class="success-message" style="text-align:center">
+                  ✅ Password modified successfully.<br/>
+                  🔁 Please refresh to continue.
+                </div>
+                <button class="btn btn-primary" 
+                        style="width:100%;margin-top:1rem"
+                        onclick="window.location.reload()">
+                  Refresh Page
+                </button>`;
+            } else {
+              document.getElementById("otpError").classList.remove("hidden");
+              document.getElementById("otpError").textContent=res.message||"Update failed.";
+            }
+          });
+        };
+      });
+    }
+
+    // ─── Initialization ─────────────────────────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", async ()=>{
+      if(!(await checkAuth())) return window.location="login.html";
+      const auth = await fetch("http://127.0.0.1:5000/api/check-auth",{credentials:"include"}).then(r=>r.json());
+      document.getElementById("userEmail").textContent = auth.email;
+      loadPasswords();
+      setupActivityListeners();
+    });
+
+    // Toggle new-password visibility
+    document.getElementById("toggleNewPassword").onclick=e=>{
+      e.preventDefault();
+      const inp=document.getElementById("password");
+      const icon=e.currentTarget.querySelector("i");
+      if(inp.type==="password") {
+        inp.type="text";
+        icon.classList.replace("fa-eye","fa-eye-slash");
+      } else {
+        inp.type="password";
+        icon.classList.replace("fa-eye-slash","fa-eye");
+      }
+    };
+
+    // Submit new-password form
+    document.getElementById("addPasswordForm").addEventListener("submit", async e=>{
+      e.preventDefault();
+      const payload = {
+        website:  document.getElementById("website").value,
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value,
+        notes:    document.getElementById("notes").value
+      };
+      const r = await fetch("http://127.0.0.1:5000/api/passwords",{
+        method:"POST",
+        credentials:"include",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if(d.success) {
+        e.target.reset();
+        loadPasswords();
+      }
+    });
+
+    // Strength meter on input
+    document.getElementById("password").addEventListener("input", e=>{
+      checkPasswordStrength(e.target.value);
+    });
+
+    // Generate-password
+    document.getElementById("generatePassword").onclick = ()=>{
+      const pwd = generateRandomPassword();
+      document.getElementById("password").value = pwd;
+      checkPasswordStrength(pwd);
+    };
+
+    // Continue session / close OTP modal
+    document.getElementById("continueSessionBtn").onclick = resetInactivityTimer;
+    document.getElementById("closeOtpModal").onclick     = ()=>
+      document.getElementById("otpModal").classList.remove("active");
+
+    // Logout
+    document.getElementById("logoutBtn").onclick = logout;
+  </script>
+</body>
+</html>

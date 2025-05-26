@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>CybVars Password Manager</title>
+  <style>
+    /* Reset & Base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f7fa;
+      color: #333;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* Container */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    /* Header */
+    header { background: #1a202c; }
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+    }
+    .logo { display: flex; align-items: center; }
+    .logo img { width: 40px; height: 40px; margin-right: 0.5rem; }
+    .logo span { font-size: 1.5rem; font-weight: bold; color: #fff; }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 1rem;
+    }
+    nav a {
+      color: #cbd5e0;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    nav a:hover { background: #2d3748; color: #fff; }
+    .btn {
+      background: #4c51bf;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #5a67d8; }
+
+    /* Hero Background Wrapper */
+    .hero-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 4rem 0;
+    }
+    .hero { text-align: center; }
+    .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+    .hero p { font-size: 1.2rem; margin-bottom: 2rem; }
+    .hero .cta { display: inline-block; margin: 0 0.5rem; }
+
+    /* Main Content Flex */
+    main { flex: 1; }
+
+    /* Features */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 2rem;
+      padding: 3rem 0;
+      justify-items: center;
+    }
+    .feature-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 100%;
+      max-width: 320px;
+    }
+    .feature-card h3 { margin-bottom: 0.5rem; color: #2d3748; font-size: 1.25rem; }
+    .feature-card p { font-size: 1rem; color: #4a5568; }
+
+    /* Footer */
+    footer {
+      background: #edf2f7;
+      color: #718096;
+      text-align: center;
+      padding: 1rem 0;
+    }
+
+    /* Responsive for tablets */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      nav ul {
+        flex-direction: column;
+        width: 100%;
+        margin: 0.5rem 0 0;
+        justify-content: center;
+      }
+      nav a, .btn {
+        display: block;
+        width: 100%;
+        max-width: 200px;
+        margin: 0.25rem auto;
+      }
+      .features { grid-template-columns: 1fr; padding: 2rem 0; }
+    }
+
+    /* Responsive for phones */
+    @media (max-width: 480px) {
+      .container { padding: 0 0.5rem; }
+      .logo img { width: 32px; height: 32px; }
+      .logo span { font-size: 1.25rem; }
+      nav ul { gap: 0.5rem; }
+      .btn { padding: 0.5rem; font-size: 0.9rem; }
+      .hero h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+      .hero p { font-size: 0.9rem; margin-bottom: 1.5rem; }
+      .hero .cta { display: block; width: 100%; margin: 0.5rem 0; }
+      .features {
+        gap: 1rem;
+        padding: 2rem 0;
+      }
+      .feature-card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container header-content">
+      <div class="logo">
+        <img src="logo.png" alt="CybVars Logo">
+        <span>CybVars</span>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="#">Home</a></li>
+          <li><a class="btn" href="login.html">Login</a></li>
+          <li><a class="btn" href="register.html">Register</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-bg">
+    <div class="container hero">
+      <h1>Secure. Simple. Reliable.</h1>
+      <p>Protect your passwords with AES-256 encryption and multi-factor authentication.</p>
+      <a class="btn cta" href="register.html">Get Started</a>
+      <a class="btn cta" href="learn.html">Learn More</a>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <main class="container">
+    <section class="features">
+      <div class="feature-card">
+        <h3>AES-256 Encryption</h3>
+        <p>Your data is encrypted using the strongest standards available.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Multi-Factor Auth</h3>
+        <p>Add an extra layer of security with OTP, biometrics, or hardware keys.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Access Anywhere</h3>
+        <p>Use CybVars safely on any device, anywhere, at any time.</p>
+      </div>
+      <div class="feature-card">
+        <h3>100% Data Safety</h3>
+        <p>We guarantee the privacy and safety of your sensitive information.</p>
+      </div>
+    </section>
+  </main>
+<audio id="bg-music" autoplay loop>
+  <source src="background.mp3" type="audio/mpeg">
+  Your browser does not support the audio tag.
+</audio>
+<script src="music.js"></script> <!-- Your new music logic -->
+
+  <footer>
+    &copy; 2025 CybVars. All rights reserved.
+  </footer>
+</body>
+</html>

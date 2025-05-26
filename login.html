@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login | CybVars</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f7fa; color: #333; }
+    .container { max-width: 400px; margin: 5rem auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    h2 { text-align: center; margin-bottom: 1.5rem; }
+    label { display: block; margin-top: 1rem; font-weight: 600; }
+    input, button { width: 100%; padding: 0.75rem; margin-top: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    button { background: #4c51bf; color: #fff; border: none; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #5a67d8; }
+    .register-link { margin-top: 1rem; text-align: center; }
+    .register-link a { color: #4c51bf; text-decoration: none; }
+    .error { color: #e53e3e; font-size: 0.9rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <a href="index.html" style="position:absolute;top:20px;left:20px;color:#4c51bf;text-decoration:none;">
+    &#8592; Back
+  </a>
+
+  <div class="container">
+    <h2>CybVars Login</h2>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input type="email" id="email" required>
+      <label for="password">Password</label>
+      <input type="password" id="password" required>
+      <button type="submit">Login</button>
+      <div id="errorMessage" class="error"></div>
+    </form>
+    <div class="register-link">
+      <p>Don't have an account? <a href="register.html">Register</a></p>
+    </div>
+  </div>
+<audio id="bg-music" autoplay loop>
+  <source src="background.mp3" type="audio/mpeg">
+  Your browser does not support the audio tag.
+</audio>
+<script src="music.js"></script> <!-- Your new music logic -->
+  <script>
+   // login.html
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const errorBox = document.getElementById('errorMessage');
+  errorBox.textContent = '';
+
+  try {
+    const res = await fetch('http://127.0.0.1:5000/api/login', {
+      method: 'POST',
+      credentials: 'include',               // ◀ add this line
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      errorBox.textContent = data.message || 'Login failed. Please try again.';
+      return;
+    }
+
+    if (data.verified === false) {
+      window.location.href =
+        `register.html?email=${encodeURIComponent(email)}&action=verify`;
+    } else {
+      window.location.href = 'dashboard.html';
+    }
+  } catch {
+    errorBox.textContent = 'Network error. Please try again.';
+  }
+});
+
+  </script>
+</body>
+</html>
