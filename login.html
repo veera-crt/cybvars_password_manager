@@ -51,7 +51,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
   errorBox.textContent = '';
 
   try {
-    const res = await fetch('http://127.0.0.1:5000/api/login', {
+    const res = await fetch('https://cybvars-password-manager.onrender.com/api/login', {
       method: 'POST',
       credentials: 'include',               // ◀ add this line
       headers: { 'Content-Type': 'application/json' },
