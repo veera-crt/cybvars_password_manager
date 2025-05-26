@@ -424,12 +424,12 @@
     }
 
     async function checkAuth() {
-      const r = await fetch("http://127.0.0.1:5000/api/check-auth", {credentials:"include"});
+      const r = await fetch("https://cybvars-password-manager.onrender.com/api/check-auth", {credentials:"include"});
       return r.ok && (await r.json()).success;
     }
 
     function logout() {
-      fetch("http://127.0.0.1:5000/api/logout", {
+      fetch("https://cybvars-password-manager.onrender.com/api/logout", {
         method:"POST", credentials:"include"
       }).then(()=> window.location = "login.html");
     }
@@ -457,7 +457,7 @@
 
     // ─── Load & Render Passwords ────────────────────────────────────────────────
     async function loadPasswords() {
-      const res = await fetch("http://127.0.0.1:5000/api/passwords", {credentials:"include"});
+      const res = await fetch("https://cybvars-password-manager.onrender.com/api/passwords", {credentials:"include"});
       const data = await res.json();
       if(!data.success) return logout();
 
@@ -509,7 +509,7 @@
             el.dataset.visible="false";
             attachPasswordVisibilityToggles();
           } else {
-            const r = await fetch(`http://127.0.0.1:5000/api/passwords/${id}`, {credentials:"include"});
+            const r = await fetch(`https://cybvars-password-manager.onrender.com/api/passwords/${id}`, {credentials:"include"});
             const d = await r.json();
             if(d.success) {
               el.innerHTML = `
@@ -536,7 +536,7 @@
           if(el.dataset.visible==="true") {
             navigator.clipboard.writeText(el.textContent.trim());
           } else {
-            const r=await fetch(`http://127.0.0.1:5000/api/passwords/${id}`,{credentials:"include"});
+            const r=await fetch(`https://cybvars-password-manager.onrender.com/api/passwords/${id}`,{credentials:"include"});
             const {password} = await r.json();
             navigator.clipboard.writeText(password);
           }
@@ -569,7 +569,7 @@
       document.getElementById("otpInput").value="";
       document.getElementById("editFormContainer").classList.add("hidden");
 
-      fetch("http://127.0.0.1:5000/api/generate-otp", {
+      fetch("https://cybvars-password-manager.onrender.com/api/generate-otp", {
         method:"POST", credentials:"include"
       }).then(r=>r.json()).then(d=>{
         if(d.success) {
@@ -600,7 +600,7 @@
         document.getElementById("otpError").classList.remove("hidden");
         return;
       }
-      fetch("http://127.0.0.1:5000/api/verify-action-otp",{
+      fetch("https://cybvars-password-manager.onrender.com/api/verify-action-otp",{
         method:"POST",
         credentials:"include",
         headers:{"Content-Type":"application/json"},
@@ -618,7 +618,7 @@
     };
 
     function deletePassword(token) {
-      fetch(`http://127.0.0.1:5000/api/passwords/${currentPwdId}`, {
+      fetch(`https://cybvars-password-manager.onrender.com/api/passwords/${currentPwdId}`, {
         method:"DELETE",
         credentials:"include",
         headers:{"Content-Type":"application/json"},
@@ -634,7 +634,7 @@
     }
 
     function showEditForm(token) {
-      fetch(`http://127.0.0.1:5000/api/passwords/${currentPwdId}`, {credentials:"include"})
+      fetch(`https://cybvars-password-manager.onrender.com/api/passwords/${currentPwdId}`, {credentials:"include"})
       .then(r=>r.json())
       .then(d=>{
         const c=document.getElementById("editFormContainer");
@@ -666,7 +666,7 @@
             notes:document.getElementById("editNotes").value,
             otp:document.getElementById("otpInput").value
           };
-          fetch(`http://127.0.0.1:5000/api/passwords/${currentPwdId}`,{
+          fetch(`https://cybvars-password-manager.onrender.com/api/passwords/${currentPwdId}`,{
             method:"PUT",
             credentials:"include",
             headers:{"Content-Type":"application/json"},
@@ -697,7 +697,7 @@
     // ─── Initialization ─────────────────────────────────────────────────────────
     document.addEventListener("DOMContentLoaded", async ()=>{
       if(!(await checkAuth())) return window.location="login.html";
-      const auth = await fetch("http://127.0.0.1:5000/api/check-auth",{credentials:"include"}).then(r=>r.json());
+      const auth = await fetch("https://cybvars-password-manager.onrender.com/api/check-auth",{credentials:"include"}).then(r=>r.json());
       document.getElementById("userEmail").textContent = auth.email;
       loadPasswords();
       setupActivityListeners();
@@ -726,7 +726,7 @@
         password: document.getElementById("password").value,
         notes:    document.getElementById("notes").value
       };
-      const r = await fetch("http://127.0.0.1:5000/api/passwords",{
+      const r = await fetch("https://cybvars-password-manager.onrender.com/api/passwords",{
         method:"POST",
         credentials:"include",
         headers:{"Content-Type":"application/json"},
