@@ -36,45 +36,52 @@
       <p>Don't have an account? <a href="register.html">Register</a></p>
     </div>
   </div>
-<audio id="bg-music" autoplay loop>
-  <source src="background.mp3" type="audio/mpeg">
-  Your browser does not support the audio tag.
-</audio>
-<script src="music.js"></script> <!-- Your new music logic -->
+
   <script>
-   // login.html
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const errorBox = document.getElementById('errorMessage');
-  errorBox.textContent = '';
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const errorBox = document.getElementById('errorMessage');
+      errorBox.textContent = '';
 
-  try {
-    const res = await fetch('https://cybvars-password-manager.onrender.com/api/login', {
-      method: 'POST',
-      credentials: 'include',               // ◀ add this line
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      try {
+        const res = await fetch('https://cybvars-password-manager.onrender.com/api/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          errorBox.textContent = data.message || 'Login failed. Please try again.';
+          return;
+        }
+
+        // Verify session after login
+        const authCheck = await fetch('https://cybvars-password-manager.onrender.com/api/check-auth', {
+          credentials: 'include'
+        });
+        
+        if (!authCheck.ok) {
+          errorBox.textContent = 'Session verification failed';
+          return;
+        }
+
+        if (data.verified === false) {
+          window.location.href = `register.html?email=${encodeURIComponent(email)}&action=verify`;
+        } else {
+          window.location.href = 'dashboard.html';
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        errorBox.textContent = 'Network error. Please try again.';
+      }
     });
-    const data = await res.json();
-
-    if (!res.ok || !data.success) {
-      errorBox.textContent = data.message || 'Login failed. Please try again.';
-      return;
-    }
-
-    if (data.verified === false) {
-      window.location.href =
-        `register.html?email=${encodeURIComponent(email)}&action=verify`;
-    } else {
-      window.location.href = 'dashboard.html';
-    }
-  } catch {
-    errorBox.textContent = 'Network error. Please try again.';
-  }
-});
-
   </script>
 </body>
 </html>
