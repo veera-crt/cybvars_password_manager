@@ -12,11 +12,28 @@ import secrets
 import os
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
-app.secret_key = secrets.token_hex(32)  # Secure session key
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Optional session timeout
+CORS(app, 
+    supports_credentials=True,
+    resources={
+        r"/api/*": {
+            "origins": ["https://veera-crt.github.io"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type"],
+            "expose_headers": ["Content-Type"],
+            "max_age": 86400
+        }
+    })
 
-# ✅ Render-ready PostgreSQL connection using DATABASE_URL
+# Enhanced session configuration
+app.secret_key = secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='None',  # Required for cross-site cookies
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=30)
+)
+
+# Database connection
 DATABASE_URL = os.environ.get("DATABASE_URL")
 conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
 conn.autocommit = True
@@ -59,9 +76,7 @@ def register():
             data['latitude'], data['longitude'], otp
         ))
 
-        # Send OTP in background thread
         Thread(target=send_otp_email, args=(email, otp)).start()
-
         return jsonify(success=True)
     except Exception as e:
         return jsonify(success=False, message=str(e)), 500
@@ -81,9 +96,7 @@ def resend_otp():
     new_otp = f"{random.randint(100000, 999999)}"
     cur.execute("UPDATE users SET otp = %s WHERE email = %s", (new_otp, email))
     
-    # Send in background
     Thread(target=send_otp_email, args=(email, new_otp)).start()
-    
     return jsonify(success=True)
 
 @app.route('/api/verify-otp', methods=['POST'])
@@ -104,7 +117,6 @@ def verify_otp():
         return jsonify(success=False, message="Invalid OTP"), 400
     except Exception as e:
         return jsonify(success=False, message=str(e)), 500
-
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -129,7 +141,11 @@ def login():
     session['logged_in'] = True
     session.permanent = True
 
-    return jsonify(success=True, verified=user['otp_verified'])
+    return jsonify(
+        success=True, 
+        verified=user['otp_verified'],
+        session_id=session.sid  # For debugging
+    )
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -140,7 +156,19 @@ def logout():
 def check_auth():
     if not session.get('logged_in'):
         return jsonify(success=False), 401
-    return jsonify(success=True, email=session.get('email'))
+    
+    # Additional verification
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM users WHERE id = %s", (session['user_id'],))
+    if not cur.fetchone():
+        session.clear()
+        return jsonify(success=False), 401
+        
+    return jsonify(
+        success=True, 
+        email=session.get('email'),
+        user_id=session.get('user_id')
+    )
 
 @app.route('/api/passwords', methods=['GET'])
 def get_passwords():
@@ -334,6 +362,7 @@ def delete_password(password_id):
 @app.route("/")
 def home():
     return "🚀 CybVars Flask API is running successfully on Render!"
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
