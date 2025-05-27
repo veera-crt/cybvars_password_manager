@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -23,15 +23,6 @@ CORS(app,
             "max_age": 86400
         }
     })
-
-# Enhanced session configuration
-app.secret_key = secrets.token_hex(32)
-app.config.update(
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='None',  # Required for cross-site cookies
-    PERMANENT_SESSION_LIFETIME=timedelta(minutes=30)
-)
 
 # Database connection
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -134,55 +125,18 @@ def login():
     if not check_password_hash(user['password_hash'], password):
         return jsonify(success=False, message="Incorrect password"), 401
 
-    # Create session
-    session.clear()
-    session['user_id'] = user['id']
-    session['email'] = email
-    session['logged_in'] = True
-    session.permanent = True
-
-    # For debugging purposes - get the session cookie name
-    session_cookie_name = app.session_cookie_name
-    session_cookie_path = app.session_cookie_path
-    session_cookie_domain = app.session_cookie_domain
-
     return jsonify(
         success=True, 
         verified=user['otp_verified'],
-        session_info={  # For debugging
-            'cookie_name': session_cookie_name,
-            'path': session_cookie_path,
-            'domain': session_cookie_domain
-        }
-    )
-
-@app.route('/api/logout', methods=['POST'])
-def logout():
-    session.clear()
-    return jsonify(success=True)
-
-@app.route('/api/check-auth', methods=['GET'])
-def check_auth():
-    if not session.get('logged_in'):
-        return jsonify(success=False), 401
-    
-    # Additional verification
-    cur = conn.cursor()
-    cur.execute("SELECT id FROM users WHERE id = %s", (session['user_id'],))
-    if not cur.fetchone():
-        session.clear()
-        return jsonify(success=False), 401
-        
-    return jsonify(
-        success=True, 
-        email=session.get('email'),
-        user_id=session.get('user_id')
+        user_id=user['id'],
+        email=email
     )
 
 @app.route('/api/passwords', methods=['GET'])
 def get_passwords():
-    if not session.get('logged_in'):
-        return jsonify(success=False, message="Unauthorized"), 401
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify(success=False, message="User ID required"), 400
 
     cur = conn.cursor()
     cur.execute("""
@@ -190,112 +144,46 @@ def get_passwords():
         FROM passwords 
         WHERE user_id = %s
         ORDER BY created_at DESC
-    """, (session['user_id'],))
+    """, (user_id,))
     passwords = cur.fetchall()
     return jsonify(success=True, passwords=passwords)
 
 @app.route('/api/passwords', methods=['POST'])
 def save_password():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     data = request.get_json()
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID required'}), 400
+        
     website = data.get('website')
     username = data.get('username')
-    password = data.get('password')  # <-- No encryption
+    password = data.get('password')
     notes = data.get('notes')
+    
     try:
         cur = conn.cursor()
         cur.execute('INSERT INTO passwords (user_id, website, username, password, notes, created_at) VALUES (%s, %s, %s, %s, %s, NOW())',
-                    (session['user_id'], website, username, password, notes))
+                    (user_id, website, username, password, notes))
         conn.commit()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
-
-def add_password():
-    if not session.get('logged_in'):
-        return jsonify(success=False, message="Unauthorized"), 401
-
-    data = request.get_json()
-    website = data.get('website')
-    username = data.get('username')
-    password = data.get('password')
-    notes = data.get('notes', '')
-
-    if not all([website, username, password]):
-        return jsonify(success=False, message="Missing required fields"), 400
-
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO passwords (user_id, website, username, password, notes)
-        VALUES (%s, %s, %s, %s, %s)
-        RETURNING id
-    """, (session['user_id'], website, username, password, notes))
-    
-    new_id = cur.fetchone()['id']
-    return jsonify(success=True, id=new_id)
-
-@app.route('/api/generate-otp', methods=['POST'])
-def generate_otp():
-    if not session.get('logged_in'):
-        return jsonify(success=False, message="Unauthorized"), 401
-
-    otp = f"{random.randint(100000, 999999)}"
-    expires_at = datetime.now() + timedelta(minutes=7)
-
-    cur = conn.cursor()
-    cur.execute("""
-        UPDATE users 
-        SET sensitive_action_otp = %s, otp_expires_at = %s 
-        WHERE id = %s
-    """, (otp, expires_at, session['user_id']))
-
-    # Send OTP in background
-    Thread(target=send_otp_email, args=(session['email'], otp)).start()
-
-    return jsonify(success=True)
-
-@app.route('/api/verify-action-otp', methods=['POST'])
-def verify_action_otp():
-    if not session.get('logged_in'):
-        return jsonify(success=False, message="Unauthorized"), 401
-
-    data = request.get_json()
-    otp = data.get('otp')
-
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT sensitive_action_otp, otp_expires_at 
-        FROM users 
-        WHERE id = %s AND otp_expires_at > NOW()
-    """, (session['user_id'],))
-    result = cur.fetchone()
-
-    if not result or result['sensitive_action_otp'] != otp:
-        return jsonify(success=False, message="Invalid or expired OTP"), 400
-
-    # OTP verified - create action token valid for 2 minutes
-    action_token = secrets.token_urlsafe(32)
-    session['action_token'] = action_token
-    session['action_token_expires'] = (datetime.now() + timedelta(minutes=2)).timestamp()
-
-    return jsonify(success=True, action_token=action_token)
-
 @app.route("/api/passwords/<int:password_id>", methods=["PUT"])
 def update_password(password_id):
-    if 'user_id' not in session:
-        return jsonify(success=False, message="Unauthorized"), 401
-
     data = request.get_json()
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify(success=False, message="User ID required"), 400
+
     website = data.get("website")
     username = data.get("username")
-    password = data.get("password")  # <-- plain password
+    password = data.get("password")
     notes = data.get("notes")
     otp = data.get("otp")
 
     cur = conn.cursor()
-    cur.execute("SELECT sensitive_action_otp, otp_expires_at FROM users WHERE id = %s", (session['user_id'],))
+    cur.execute("SELECT sensitive_action_otp, otp_expires_at FROM users WHERE id = %s", (user_id,))
     result = cur.fetchone()
 
     if not result or result['sensitive_action_otp'] != otp or result['otp_expires_at'] < datetime.now():
@@ -306,7 +194,7 @@ def update_password(password_id):
             UPDATE passwords 
             SET website = %s, username = %s, password = %s, notes = %s 
             WHERE id = %s AND user_id = %s
-        """, (website, username, password, notes, password_id, session['user_id']))  # <-- store plain password
+        """, (website, username, password, notes, password_id, user_id))
         conn.commit()
         return jsonify(success=True)
     except Exception as e:
@@ -314,14 +202,15 @@ def update_password(password_id):
 
 @app.route("/api/passwords/<int:password_id>", methods=["GET"])
 def get_password_by_id(password_id):
-    if 'user_id' not in session:
-        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({"success": False, "message": "User ID required"}), 400
 
     try:
         cur = conn.cursor()
         cur.execute(
             "SELECT website, username, password, notes FROM passwords WHERE id = %s AND user_id = %s",
-            (password_id, session['user_id'])
+            (password_id, user_id)
         )
         row = cur.fetchone()
 
@@ -335,35 +224,20 @@ def get_password_by_id(password_id):
             "password": row["password"],
             "notes": row["notes"]
         })
-
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/passwords/<int:password_id>", methods=["DELETE"])
 def delete_password(password_id):
-    if 'user_id' not in session:
-        return jsonify(success=False, message="Unauthorized"), 401
-    
     data = request.get_json()
-    action_token = data.get('action_token')
-    
-    # Verify action token
-    if not session.get('action_token') or session.get('action_token') != action_token:
-        return jsonify(success=False, message="Invalid action token"), 400
-    
-    # Check if token is expired
-    if session.get('action_token_expires', 0) < datetime.now().timestamp():
-        return jsonify(success=False, message="Action token expired"), 400
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify(success=False, message="User ID required"), 400
     
     try:
         cur = conn.cursor()
         cur.execute("DELETE FROM passwords WHERE id = %s AND user_id = %s", 
-                   (password_id, session['user_id']))
-        
-        # Clear action token after use
-        session.pop('action_token', None)
-        session.pop('action_token_expires', None)
-        
+                   (password_id, user_id))
         return jsonify(success=True)
     except Exception as e:
         return jsonify(success=False, message=str(e)), 500
@@ -372,10 +246,6 @@ def delete_password(password_id):
 def home():
     return "🚀 CybVars Flask API is running successfully on Render!"
 
-
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
-
-
-
