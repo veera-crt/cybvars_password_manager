@@ -141,10 +141,19 @@ def login():
     session['logged_in'] = True
     session.permanent = True
 
+    # For debugging purposes - get the session cookie name
+    session_cookie_name = app.session_cookie_name
+    session_cookie_path = app.session_cookie_path
+    session_cookie_domain = app.session_cookie_domain
+
     return jsonify(
         success=True, 
         verified=user['otp_verified'],
-        session_id=session.sid  # For debugging
+        session_info={  # For debugging
+            'cookie_name': session_cookie_name,
+            'path': session_cookie_path,
+            'domain': session_cookie_domain
+        }
     )
 
 @app.route('/api/logout', methods=['POST'])
